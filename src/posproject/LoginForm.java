@@ -4,11 +4,9 @@
  */
 package posproject;
 
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.awt.Toolkit;
+import java.awt.event.KeyEvent;
 import javax.swing.JOptionPane;
-import static posproject.DBConnector.connection;
-import java.sql.PreparedStatement;
 
 
 /**
@@ -23,6 +21,7 @@ public class LoginForm extends javax.swing.JFrame {
     public LoginForm() {
         DBConnector.initDBConnection();
         initComponents();
+        setIconImage();
     }
 
     /**
@@ -41,7 +40,14 @@ public class LoginForm extends javax.swing.JFrame {
         loginButton = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setTitle("Login");
+        setTitle("Punokawan Login Access");
+        setBackground(new java.awt.Color(34, 51, 59));
+        setIconImage(getIconImage());
+        addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                formKeyPressed(evt);
+            }
+        });
 
         jLabel1.setText("Username");
 
@@ -57,6 +63,11 @@ public class LoginForm extends javax.swing.JFrame {
         loginButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 loginButtonActionPerformed(evt);
+            }
+        });
+        loginButton.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                loginButtonKeyPressed(evt);
             }
         });
 
@@ -121,6 +132,31 @@ public class LoginForm extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_userTxtActionPerformed
 
+    private void loginButtonKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_loginButtonKeyPressed
+      
+    }//GEN-LAST:event_loginButtonKeyPressed
+
+    private void formKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_formKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            String adminPassword = "admin123";
+        
+            String adminhash = PasswordHasher.doHashing(adminPassword);
+
+            String username = userTxt.getText();
+            String password = new String(passwordTxt.getPassword());
+            String userhash = PasswordHasher.doHashing(password);
+
+            if (username.equals("admin") && userhash.equals(adminhash)) {
+                dispose();
+                PosFrame mainForm = new PosFrame();
+                mainForm.setVisible(true);
+            } else {
+                // Display an error message if the login is invalid
+                JOptionPane.showMessageDialog(this, "Invalid username or password", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }//GEN-LAST:event_formKeyPressed
+
     /**
      * @param args the command line arguments
      */
@@ -164,4 +200,8 @@ public class LoginForm extends javax.swing.JFrame {
     private javax.swing.JPasswordField passwordTxt;
     private javax.swing.JTextField userTxt;
     // End of variables declaration//GEN-END:variables
+
+    private void setIconImage() {
+        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("Punokawan.png")));
+    }
 }

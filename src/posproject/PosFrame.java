@@ -4,11 +4,13 @@
  */
 package posproject;
 
+import java.awt.Toolkit;
 import java.util.ArrayList;
 import java.util.Random;
 import javax.swing.JOptionPane;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
 /**
@@ -18,7 +20,6 @@ import javax.swing.table.TableModel;
 public class PosFrame extends javax.swing.JFrame {
     
     ArrayList<Barang> daftarBarang;
-    
     Transaksi transaksi = new Transaksi();
     DetailTransaksi detailTransaksi = new DetailTransaksi();
     
@@ -28,7 +29,7 @@ public class PosFrame extends javax.swing.JFrame {
     
     int transaction_ID;
     
-    TableModel daftarModel;
+     DefaultTableModel daftarModel;
     
     int jumlahBelanja = 0;
     
@@ -38,6 +39,8 @@ public class PosFrame extends javax.swing.JFrame {
     public PosFrame() {
         DBConnector.initDBConnection();
         
+        setIconImage();
+        
         Barang.loadBarangFromDB();
         System.out.println(Barang.daftarBarang.size());
         
@@ -46,60 +49,90 @@ public class PosFrame extends javax.swing.JFrame {
         System.out.println(daftarBarang.size());
         
         initComponents();
-        // Error handling jumlah masih gabisa
-        daftarModel = daftarTable.getModel();
+      
+        daftarModel = (DefaultTableModel) daftarTable.getModel();
         
-        daftarModel.addTableModelListener(new TableModelListener() {
-            @Override
-            public void tableChanged(TableModelEvent tme) {
-                System.out.println("tableChanged() called with event: " + tme);
-
-                if (tme.getColumn() == 4) {
-                    int baris = tme.getFirstRow();
+        daftarModel.addTableModelListener((TableModelEvent tme) -> {
+        System.out.println("tableChanged() called with event: " + tme);
+            
+            if (tme.getColumn() == 4) {
+                int baris = tme.getFirstRow();
+                
+                String message = "baris dimulai pada -------> "+baris;
+                
+                System.out.println(message);
+                
+                float harga = (float) daftarModel.getValueAt(baris, 3);
+                int jumlah = 0;
+                
+                try {
+                    // update item count
+                    jumlah = Integer.parseInt(daftarModel.getValueAt(baris, 4).toString());
+                    detailTransaksi.daftarJumlahBarang.set(baris,jumlah);
                     
-                    String message = "baris dimulai pada -------> "+baris;
+                } 
+                catch (NumberFormatException e) {
+                    // Display an error message
+                    System.out.println("NumberFormatException: " + e.getMessage());
+                    JOptionPane.showMessageDialog(null, "Jumlah harus berupa angka");
                     
-                    System.out.println(message);
-
-                    float harga = (float) daftarModel.getValueAt(baris, 3);
-                    int jumlah = 0;
-
-                    try {
-                        // update item count
-                        jumlah = Integer.parseInt(daftarModel.getValueAt(baris, 4).toString());
-                        detailTransaksi.daftarJumlahBarang.set(baris,jumlah);
-                        
-                    } catch (NumberFormatException e) {
-                        // Display an error message
-                        System.out.println("NumberFormatException: " + e.getMessage());
-                        JOptionPane.showMessageDialog(null, "Jumlah harus berupa angka");
-
-                        // Set the value to 1
-                        daftarModel.setValueAt(1, baris, tme.getColumn());
-                        return; // Exit the listener to prevent further calculations
-                    }
-
-                    float total = harga * jumlah;
-                    daftarModel.setValueAt(total, baris, 5);
-                    // update price
-                    detailTransaksi.daftarHargaBarang.set(baris,total);
-
-                    float totalBelanja = 0.0f;
-                    total = 0.0f;
-                    
-                    
-
-                    // Warning: Jumlah Belanja belum update ketika listener dipanggil
-                    for (int i = 0; i < jumlahBelanja; i++) {
-                        total = (float) daftarModel.getValueAt(i, 5);
-                        totalBelanja = totalBelanja + total;
-                        
-                    }
-                    int totalBelanjaInt = (int) totalBelanja;
-                    totalBelanjaTextField.setText(String.format("%,d", totalBelanjaInt));
+                    // Set the value to 1
+                    daftarModel.setValueAt(1, baris, tme.getColumn());
+                    return; // Exit the listener to prevent further calculations
                 }
+                
+                float total = harga * jumlah;
+                daftarModel.setValueAt(total, baris, 5);
+                // update price
+                detailTransaksi.daftarHargaBarang.set(baris,total);
+                
+                float totalBelanja = 0.0f;
+                total = 0.0f;
+ 
+                for (int i = 0; i < jumlahBelanja; i++) {
+                    total = (float) daftarModel.getValueAt(i, 5);
+                    totalBelanja = totalBelanja + total;
+                }
+                int totalBelanjaInt = (int) totalBelanja;
+                totalBelanjaTextField.setText(String.format("%,d", totalBelanjaInt));
             }
         });
+        
+        daftarModel.addTableModelListener(new TableModelListener()
+            {
+                @Override
+                public void tableChanged(TableModelEvent tme) {
+                    if(tme.getColumn() == 4){
+                        int baris = tme.getFirstRow();
+                        
+                        float harga = (float)daftarModel.getValueAt(baris,3);
+                        int jumlah = 0;
+  
+                        try {
+                            jumlah = Integer.parseInt(daftarModel.getValueAt(baris, 4).toString());
+                        } 
+                        catch (NumberFormatException e) {
+                            JOptionPane.showMessageDialog(null, "Jumlah harus berupa angka");
+                            daftarModel.setValueAt(1, tme.getFirstRow(), tme.getColumn());
+                        }
+                        
+                        float total = harga * jumlah;
+                        daftarModel.setValueAt(total, baris, 5);
+                        
+                        float totalBelanja = 0.0f;
+                        total = 0.0f;
+                        
+                        // Warning : Jumlah Belanja belum update ketika listener dipanggil
+                        for (int i=0; i < jumlahBelanja; i++){
+                           total = (float)daftarModel.getValueAt(i,5);
+                           totalBelanja = totalBelanja + total;
+                        }      
+                        int totalBelanjaInt = (int)totalBelanja;
+                        totalBelanjaTextField.setText(String.format("%,d",totalBelanjaInt));
+                    }
+                }   
+           }
+        );
     }
 
     /**
@@ -131,13 +164,21 @@ public class PosFrame extends javax.swing.JFrame {
         jLabel6 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Punokawan Cashier");
+        setBackground(new java.awt.Color(60, 4, 37));
 
+        jPanel1.setBackground(new java.awt.Color(153, 88, 42));
+
+        jLabel2.setForeground(new java.awt.Color(255, 255, 211));
         jLabel2.setText("Kode");
 
+        jLabel1.setForeground(new java.awt.Color(255, 255, 211));
         jLabel1.setText("Nama");
 
+        jLabel3.setForeground(new java.awt.Color(255, 255, 211));
         jLabel3.setText("Harga");
 
+        kodeTextField.setBackground(new java.awt.Color(204, 204, 204));
         kodeTextField.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 kodeTextFieldActionPerformed(evt);
@@ -145,8 +186,10 @@ public class PosFrame extends javax.swing.JFrame {
         });
 
         namaTextField.setEditable(false);
+        namaTextField.setBackground(new java.awt.Color(204, 204, 204));
 
         hargaTextField.setEditable(false);
+        hargaTextField.setBackground(new java.awt.Color(204, 204, 204));
 
         daftarTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -286,9 +329,12 @@ public class PosFrame extends javax.swing.JFrame {
         }
 
         totalBelanjaTextField.setEditable(false);
+        totalBelanjaTextField.setBackground(new java.awt.Color(204, 204, 204));
 
+        jLabel4.setForeground(new java.awt.Color(255, 255, 211));
         jLabel4.setText("Total Belanja");
 
+        dibayarTextField.setBackground(new java.awt.Color(204, 204, 204));
         dibayarTextField.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 dibayarTextFieldActionPerformed(evt);
@@ -303,15 +349,18 @@ public class PosFrame extends javax.swing.JFrame {
             }
         });
 
+        jLabel5.setForeground(new java.awt.Color(255, 255, 211));
         jLabel5.setText("Jumlah Bayar");
 
         kembalianTextField.setEditable(false);
+        kembalianTextField.setBackground(new java.awt.Color(204, 204, 204));
         kembalianTextField.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 kembalianTextFieldActionPerformed(evt);
             }
         });
 
+        jLabel6.setForeground(new java.awt.Color(255, 255, 211));
         jLabel6.setText("Kembalian");
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
@@ -432,15 +481,16 @@ public class PosFrame extends javax.swing.JFrame {
                 
                 
                 namaTextField.setText(barang.nama);
+                
                 hargaTextField.setText(Float.toString(barang.harga));
+                
                 daftarModel.setValueAt(jumlahBelanja, tempIndex, 0);
                 daftarModel.setValueAt(kodeInput, tempIndex, 1);
                 daftarModel.setValueAt(barang.nama, tempIndex, 2);
                 daftarModel.setValueAt(barang.harga, tempIndex, 3);
                 daftarModel.setValueAt(1, tempIndex, 4);
+                
                 tempBarang = barang;
-                
-                
                 break;
             }
             
@@ -506,7 +556,41 @@ public class PosFrame extends javax.swing.JFrame {
         // adding to database   
         transaksi.insertDataTransaksi();
         detailTransaksi.insertDetailTransaksi();
+        
+        int confirm = JOptionPane.showConfirmDialog(null, "Transaction complete. Clear all fields?");
 
+        if (confirm == JOptionPane.OK_OPTION) {
+            kodeTextField.setText("");
+            dibayarTextField.setText("");
+            kembalianTextField.setText("");
+            totalBelanjaTextField.setText("");
+            namaTextField.setText("");
+            hargaTextField.setText("");
+            
+            daftarModel = (DefaultTableModel) daftarTable.getModel();
+            
+            TableModelListener[] listeners = daftarModel.getTableModelListeners();
+
+            for(TableModelListener listener : listeners){
+                daftarModel.removeTableModelListener(listener);
+            }
+
+            int rowCount = daftarModel.getRowCount();
+            int columnCount = daftarModel.getColumnCount();
+
+            for(int i = 0;i<rowCount;i++){
+                for(int j = 0;j<columnCount;j++){
+                    System.out.println("rows resetted");
+                    daftarModel.setValueAt(null, i, j);
+                }
+            }
+            jumlahBelanja = 0;
+            System.out.println("Table Cleared");
+            
+            for(TableModelListener listener: listeners){
+                daftarModel.addTableModelListener(listener);
+            }
+        }
     }//GEN-LAST:event_dibayarTextFieldActionPerformed
 
     private void dibayarTextFieldKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_dibayarTextFieldKeyTyped
@@ -528,7 +612,8 @@ public class PosFrame extends javax.swing.JFrame {
         try {
             float dibayarInput = Float.parseFloat(dibayarString);
             dibayarTextField.setText(String.format("%,.0f", dibayarInput));
-        } catch (NumberFormatException ex) {
+        } 
+        catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(null, "Invalid input. Please enter a number.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_dibayarTextFieldKeyReleased
@@ -566,6 +651,9 @@ public class PosFrame extends javax.swing.JFrame {
                 new PosFrame().setVisible(true);
             }
         });
+    }
+    private void setIconImage() {
+        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("Punokawan.png")));
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

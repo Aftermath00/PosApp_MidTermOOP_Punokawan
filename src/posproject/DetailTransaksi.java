@@ -44,8 +44,6 @@ public class DetailTransaksi {
                 }
             }
             
-            
-            
             statement.close();
             
         }catch(Exception ex){
