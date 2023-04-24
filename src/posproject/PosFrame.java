@@ -5,10 +5,12 @@
 package posproject;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Random;
 import javax.swing.JOptionPane;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
 /**
@@ -28,7 +30,8 @@ public class PosFrame extends javax.swing.JFrame {
     
     int transaction_ID;
     
-    TableModel daftarModel;
+    DefaultTableModel daftarModel;
+    
     
     int jumlahBelanja = 0;
     
@@ -39,6 +42,7 @@ public class PosFrame extends javax.swing.JFrame {
         DBConnector.initDBConnection();
         
         Barang.loadBarangFromDB();
+        
         System.out.println(Barang.daftarBarang.size());
         
         daftarBarang = Barang.daftarBarang;  
@@ -46,20 +50,17 @@ public class PosFrame extends javax.swing.JFrame {
         System.out.println(daftarBarang.size());
         
         initComponents();
+        
         // Error handling jumlah masih gabisa
-        daftarModel = daftarTable.getModel();
+        daftarModel = (DefaultTableModel) daftarTable.getModel();
         
         daftarModel.addTableModelListener(new TableModelListener() {
             @Override
             public void tableChanged(TableModelEvent tme) {
-                System.out.println("tableChanged() called with event: " + tme);
+                System.out.println("table Changed");
 
                 if (tme.getColumn() == 4) {
                     int baris = tme.getFirstRow();
-                    
-                    String message = "baris dimulai pada -------> "+baris;
-                    
-                    System.out.println(message);
 
                     float harga = (float) daftarModel.getValueAt(baris, 3);
                     int jumlah = 0;
@@ -81,6 +82,7 @@ public class PosFrame extends javax.swing.JFrame {
 
                     float total = harga * jumlah;
                     daftarModel.setValueAt(total, baris, 5);
+                    
                     // update price
                     detailTransaksi.daftarHargaBarang.set(baris,total);
 
@@ -91,8 +93,11 @@ public class PosFrame extends javax.swing.JFrame {
 
                     // Warning: Jumlah Belanja belum update ketika listener dipanggil
                     for (int i = 0; i < jumlahBelanja; i++) {
-                        total = (float) daftarModel.getValueAt(i, 5);
-                        totalBelanja = totalBelanja + total;
+                        
+                        if(daftarModel.getValueAt(i, 5) != null){
+                            total = (float) daftarModel.getValueAt(i, 5);
+                            totalBelanja = totalBelanja + total;
+                        }
                         
                     }
                     int totalBelanjaInt = (int) totalBelanja;
@@ -145,8 +150,18 @@ public class PosFrame extends javax.swing.JFrame {
         });
 
         namaTextField.setEditable(false);
+        namaTextField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                namaTextFieldActionPerformed(evt);
+            }
+        });
 
         hargaTextField.setEditable(false);
+        hargaTextField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                hargaTextFieldActionPerformed(evt);
+            }
+        });
 
         daftarTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -286,6 +301,11 @@ public class PosFrame extends javax.swing.JFrame {
         }
 
         totalBelanjaTextField.setEditable(false);
+        totalBelanjaTextField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                totalBelanjaTextFieldActionPerformed(evt);
+            }
+        });
 
         jLabel4.setText("Total Belanja");
 
@@ -411,6 +431,60 @@ public class PosFrame extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void clearTextField(){
+        kodeTextField.setText("");
+        namaTextField.setText("");
+        hargaTextField.setText("");
+        totalBelanjaTextField.setText("");
+        dibayarTextField.setText("");
+        kembalianTextField.setText("");
+        
+        System.out.println("Text Field Cleared");
+        
+        
+    }
+    private void clearTable(){
+        
+        daftarModel = (DefaultTableModel) daftarTable.getModel();
+        
+        
+        
+        TableModelListener[] listeners = daftarModel.getTableModelListeners();
+        TableModelListener[] listenerHolder = listeners;
+        
+        for(TableModelListener listener : listeners){
+            daftarModel.removeTableModelListener(listener);
+        }
+        
+        //daftarModel.setRowCount(0);
+        //jumlahBelanja = 0;
+        //daftarModel.setRowCount(100);
+        
+        int rowCount = daftarModel.getRowCount();
+        int columnCount = daftarModel.getColumnCount();
+        
+        for(int i = 0;i<rowCount;i++){
+            for(int j = 0;j<columnCount;j++){
+                System.out.println("rows resetted");
+                daftarModel.setValueAt(null, i, j);
+            }
+        }
+        
+        jumlahBelanja = 0;
+        clearTextField();
+        System.out.println("Table Cleared");
+        
+        
+        for(TableModelListener listener: listeners){
+            daftarModel.addTableModelListener(listener);
+        }
+        
+       
+        
+    }
+    
+    
+    
     private void kodeTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_kodeTextFieldActionPerformed
         String kodeInput = kodeTextField.getText();
         // Error handling kode apakaah ada di list atau tidak
@@ -433,11 +507,13 @@ public class PosFrame extends javax.swing.JFrame {
                 
                 namaTextField.setText(barang.nama);
                 hargaTextField.setText(Float.toString(barang.harga));
+                
                 daftarModel.setValueAt(jumlahBelanja, tempIndex, 0);
                 daftarModel.setValueAt(kodeInput, tempIndex, 1);
                 daftarModel.setValueAt(barang.nama, tempIndex, 2);
                 daftarModel.setValueAt(barang.harga, tempIndex, 3);
                 daftarModel.setValueAt(1, tempIndex, 4);
+                
                 tempBarang = barang;
                 
                 
@@ -457,15 +533,7 @@ public class PosFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_kembalianTextFieldActionPerformed
 
     private void dibayarTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dibayarTextFieldActionPerformed
-        // TODO add your handling code here:
-//        float totalBelanja = Float.valueOf(totalBelanjaTextField.getText());
-//        int totalBelanjaInt = (int)totalBelanja;
-//        
-//        float dibayar = Float.valueOf(dibayarTextField.getText());
-//        int dibayarInt = (int)dibayar;
-//        
-//        int kembalian = dibayarInt - totalBelanjaInt;
-//        kembalianTextField.setText(String.format("%,d",kembalian));
+
 
 
         String totalBelanjaString = totalBelanjaTextField.getText();
@@ -506,6 +574,7 @@ public class PosFrame extends javax.swing.JFrame {
         // adding to database   
         transaksi.insertDataTransaksi();
         detailTransaksi.insertDetailTransaksi();
+        clearTable();
 
     }//GEN-LAST:event_dibayarTextFieldActionPerformed
 
@@ -515,13 +584,7 @@ public class PosFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_dibayarTextFieldKeyTyped
 
     private void dibayarTextFieldKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_dibayarTextFieldKeyReleased
-        // TODO add your handling code here:
-        
-//        String dibayarString =  dibayarTextField.getText();
-//        dibayarString = dibayarString.replace(",", "");
-//        
-//        int dibayarInput = Integer.valueOf(dibayarString);
-//        dibayarTextField.setText(String.format("%,d",dibayarInput));
+
         String dibayarString = dibayarTextField.getText();
         dibayarString = dibayarString.replace(",", ""); // remove commas from the string
 
@@ -532,6 +595,18 @@ public class PosFrame extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(null, "Invalid input. Please enter a number.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_dibayarTextFieldKeyReleased
+
+    private void namaTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_namaTextFieldActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_namaTextFieldActionPerformed
+
+    private void hargaTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_hargaTextFieldActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_hargaTextFieldActionPerformed
+
+    private void totalBelanjaTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_totalBelanjaTextFieldActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_totalBelanjaTextFieldActionPerformed
 
     /**
      * @param args the command line arguments
