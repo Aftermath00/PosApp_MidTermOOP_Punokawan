@@ -51,53 +51,6 @@ public class PosFrame extends javax.swing.JFrame {
         initComponents();
       
         daftarModel = (DefaultTableModel) daftarTable.getModel();
-        
-        daftarModel.addTableModelListener((TableModelEvent tme) -> {
-        System.out.println("tableChanged() called with event: " + tme);
-            
-            if (tme.getColumn() == 4) {
-                int baris = tme.getFirstRow();
-                
-                String message = "baris dimulai pada -------> "+baris;
-                
-                System.out.println(message);
-                
-                float harga = (float) daftarModel.getValueAt(baris, 3);
-                int jumlah = 0;
-                
-                try {
-                    // update item count
-                    jumlah = Integer.parseInt(daftarModel.getValueAt(baris, 4).toString());
-                    detailTransaksi.daftarJumlahBarang.set(baris,jumlah);
-                    
-                } 
-                catch (NumberFormatException e) {
-                    // Display an error message
-                    System.out.println("NumberFormatException: " + e.getMessage());
-                    JOptionPane.showMessageDialog(null, "Jumlah harus berupa angka");
-                    
-                    // Set the value to 1
-                    daftarModel.setValueAt(1, baris, tme.getColumn());
-                    return; // Exit the listener to prevent further calculations
-                }
-                
-                float total = harga * jumlah;
-                daftarModel.setValueAt(total, baris, 5);
-                // update price
-                detailTransaksi.daftarHargaBarang.set(baris,total);
-                
-                float totalBelanja = 0.0f;
-                total = 0.0f;
- 
-                for (int i = 0; i < jumlahBelanja; i++) {
-                    total = (float) daftarModel.getValueAt(i, 5);
-                    totalBelanja = totalBelanja + total;
-                }
-                int totalBelanjaInt = (int) totalBelanja;
-                totalBelanjaTextField.setText(String.format("%,d", totalBelanjaInt));
-            }
-        });
-        
         daftarModel.addTableModelListener(new TableModelListener()
             {
                 @Override
@@ -110,6 +63,7 @@ public class PosFrame extends javax.swing.JFrame {
   
                         try {
                             jumlah = Integer.parseInt(daftarModel.getValueAt(baris, 4).toString());
+                            detailTransaksi.daftarJumlahBarang.set(baris,jumlah);
                         } 
                         catch (NumberFormatException e) {
                             JOptionPane.showMessageDialog(null, "Jumlah harus berupa angka");
@@ -118,9 +72,12 @@ public class PosFrame extends javax.swing.JFrame {
                         
                         float total = harga * jumlah;
                         daftarModel.setValueAt(total, baris, 5);
+                        System.out.println("harga sebelumnya = "+harga);
+                        System.out.println("harga setelahnya = "+total);
+                        
+                        detailTransaksi.daftarHargaBarang.set(baris,total);
                         
                         float totalBelanja = 0.0f;
-                        total = 0.0f;
                         
                         // Warning : Jumlah Belanja belum update ketika listener dipanggil
                         for (int i=0; i < jumlahBelanja; i++){
@@ -131,7 +88,7 @@ public class PosFrame extends javax.swing.JFrame {
                         totalBelanjaTextField.setText(String.format("%,d",totalBelanjaInt));
                     }
                 }   
-           }
+       }
         );
     }
 
@@ -493,7 +450,6 @@ public class PosFrame extends javax.swing.JFrame {
                 tempBarang = barang;
                 break;
             }
-            
         }
         if (tempBarang == null) {
             System.out.println("Barang tidak ditemukan!");
@@ -532,8 +488,7 @@ public class PosFrame extends javax.swing.JFrame {
         String dibayarString = dibayarTextField.getText();
         dibayarString = dibayarString.replace(",", ""); // remove commas from the string
         float dibayar = Float.parseFloat(dibayarString);
-        
-        
+
             if (dibayar < totalBelanja) {
                 JOptionPane.showMessageDialog(null, "The amount paid is insufficient to cover the total purchase cost.");
                 dibayarTextField.setText("");
@@ -585,6 +540,10 @@ public class PosFrame extends javax.swing.JFrame {
                 }
             }
             jumlahBelanja = 0;
+            detailTransaksi.daftarHargaBarang.clear();
+            detailTransaksi.daftarIdBarang.clear();
+            detailTransaksi.daftarJumlahBarang.clear();
+            
             System.out.println("Table Cleared");
             
             for(TableModelListener listener: listeners){

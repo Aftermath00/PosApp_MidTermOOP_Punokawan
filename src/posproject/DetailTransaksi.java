@@ -30,13 +30,11 @@ public class DetailTransaksi {
             PreparedStatement statement = connection.prepareStatement(sql);
             
             for( int i = 0;i<daftarIdBarang.size();i++){
-                
-                
                 statement.setInt(1, transactionID);
                 statement.setFloat(2, daftarIdBarang.get(i));
                 statement.setFloat(3,daftarJumlahBarang.get(i));
                 statement.setFloat(4, daftarHargaBarang.get(i));
-            
+                
                 int rowInserted = statement.executeUpdate();
                 
                 if(rowInserted > 0){
